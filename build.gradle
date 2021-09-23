@@ -37,14 +37,14 @@ dependencies {
 task runServer(type: JavaExec) {
   classpath = sourceSets.main.runtimeClasspath
 
-  main = 'com.example.helloworld.GreeterServer'
+  main = 'com.szepep.dixa.proto.GreeterServer'
 }
 
 
 task runClient(type: JavaExec) {
   classpath = sourceSets.main.runtimeClasspath
 
-  main = 'com.example.helloworld.GreeterClient'
+  main = 'com.szepep.dixa.proto.GreeterClient'
 
   // arguments to pass to the application
   if (project.hasProperty("GreeterClient.user"))
@@ -52,5 +52,5 @@ task runClient(type: JavaExec) {
 }
 
 application {
-  mainClassName = 'com.example.helloworld.GreeterServer'
+  mainClassName = 'com.szepep.dixa.proto.GreeterServer'
 }

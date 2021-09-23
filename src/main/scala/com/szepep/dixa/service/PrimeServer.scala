@@ -1,52 +1,43 @@
-package com.example.helloworld
-
-import java.security.KeyStore
-import java.security.SecureRandom
-import java.security.cert.Certificate
-import java.security.cert.CertificateFactory
-
-import scala.io.Source
+package com.szepep.dixa.service
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.http.scaladsl.ConnectionContext
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.HttpsConnectionContext
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpResponse
-import akka.pki.pem.DERPrivateKeyLoader
-import akka.pki.pem.PEMDecoder
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
+import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
+import com.szepep.dixa.proto.PrimeServiceHandler
 import com.typesafe.config.ConfigFactory
-import javax.net.ssl.KeyManagerFactory
-import javax.net.ssl.SSLContext
 
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.util.Failure
-import scala.util.Success
+import java.security.cert.{Certificate, CertificateFactory}
+import java.security.{KeyStore, SecureRandom}
+import javax.net.ssl.{KeyManagerFactory, SSLContext}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.io.Source
+import scala.util.{Failure, Success}
 
-object GreeterServer {
+object PrimeServer {
 
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseString("akka.http.server.preview.enable-http2 = on")
       .withFallback(ConfigFactory.defaultApplication())
     val system = ActorSystem[Nothing](Behaviors.empty, "GreeterServer", conf)
-    new GreeterServer(system).run()
+    new PrimeServer(system).run()
   }
 }
 
-class GreeterServer(system: ActorSystem[_]) {
+class PrimeServer(system: ActorSystem[_]) {
 
   def run(): Future[Http.ServerBinding] = {
-    implicit val sys = system
+    implicit val sys: ActorSystem[_] = system
     implicit val ec: ExecutionContext = system.executionContext
+    implicit val generator: PrimeGenerator = SimplePrimeGenerator
 
     val service: HttpRequest => Future[HttpResponse] =
-      GreeterServiceHandler(new GreeterServiceImpl(system))
+      PrimeServiceHandler(new PrimeServiceImpl)
 
     val bound: Future[Http.ServerBinding] = Http(system)
-      .newServerAt(interface = "127.0.0.1", port = 8080)
+      .newServerAt(interface = "127.0.0.1", port = 8081)
       .enableHttps(serverHttpContext)
       .bind(service)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 10.seconds))
@@ -68,7 +59,7 @@ class GreeterServer(system: ActorSystem[_]) {
       DERPrivateKeyLoader.load(PEMDecoder.decode(readPrivateKeyPem()))
     val fact = CertificateFactory.getInstance("X.509")
     val cer = fact.generateCertificate(
-      classOf[GreeterServer].getResourceAsStream("/certs/server1.pem")
+      classOf[PrimeServer].getResourceAsStream("/certs/server1.pem")
     )
     val ks = KeyStore.getInstance("PKCS12")
     ks.load(null)
@@ -82,7 +73,7 @@ class GreeterServer(system: ActorSystem[_]) {
     keyManagerFactory.init(ks, null)
     val context = SSLContext.getInstance("TLS")
     context.init(keyManagerFactory.getKeyManagers, null, new SecureRandom)
-    ConnectionContext.https(context)
+    ConnectionContext.httpsServer(context)
   }
 
   private def readPrivateKeyPem(): String =
