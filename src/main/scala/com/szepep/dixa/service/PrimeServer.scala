@@ -2,6 +2,7 @@ package com.szepep.dixa.service
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
+import com.typesafe.config.{Config, ConfigFactory}
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.{ConnectionContext, Http, HttpsConnectionContext}
 import akka.pki.pem.{DERPrivateKeyLoader, PEMDecoder}
@@ -20,7 +21,7 @@ object PrimeServer {
 
   def main(args: Array[String]): Unit = {
     val conf = ConfigFactory.parseString("akka.http.server.preview.enable-http2 = on")
-      .withFallback(ConfigFactory.defaultApplication())
+    .withFallback(ConfigFactory.defaultApplication())
     val system = ActorSystem[Nothing](Behaviors.empty, "GreeterServer", conf)
     new PrimeServer(system).run()
   }
@@ -34,10 +35,14 @@ class PrimeServer(system: ActorSystem[_]) {
     implicit val generator: PrimeGenerator = SimplePrimeGenerator
 
     val service: HttpRequest => Future[HttpResponse] =
-      PrimeServiceHandler(new PrimeServiceImpl)
+    PrimeServiceHandler(new PrimeServiceImpl)
+
+    val applicationConf: Config = ConfigFactory.load("application.conf")
+    val host = applicationConf.getString("grpc.server.host")
+    val port = applicationConf.getInt("grpc.server.port")
 
     val bound: Future[Http.ServerBinding] = Http(system)
-      .newServerAt(interface = "127.0.0.1", port = 8081)
+      .newServerAt(interface = host, port = port)
       .enableHttps(serverHttpContext)
       .bind(service)
       .map(_.addToCoordinatedShutdown(hardTerminationDeadline = 10.seconds))

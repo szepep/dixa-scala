@@ -25,9 +25,12 @@ dependencies {
 
   compile 'ch.qos.logback:logback-classic:1.2.3'
 
+  testImplementation 'com.typesafe.akka:akka-testkit_2.12:2.6.16'
   testImplementation 'com.typesafe.akka:akka-actor-testkit-typed_2.12:2.6.16'
   testImplementation 'com.typesafe.akka:akka-stream-testkit_2.12:2.6.16'
+
   testImplementation 'org.scalatest:scalatest_2.12:3.1.1'
+
   // optional in Scalatest
   testRuntime 'com.vladsch.flexmark:flexmark-all:0.35.10'
   // Required by https://github.com/maiflai/gradle-scalatest
@@ -37,20 +40,16 @@ dependencies {
 task runServer(type: JavaExec) {
   classpath = sourceSets.main.runtimeClasspath
 
-  main = 'com.szepep.dixa.proto.GreeterServer'
+  main = 'com.szepep.dixa.service.PrimeServer'
 }
 
 
 task runClient(type: JavaExec) {
   classpath = sourceSets.main.runtimeClasspath
 
-  main = 'com.szepep.dixa.proto.GreeterClient'
-
-  // arguments to pass to the application
-  if (project.hasProperty("GreeterClient.user"))
-    args  project.getProperty("GreeterClient.user")
+  main = 'com.szepep.dixa.proxy.PrimeProxy'
 }
 
 application {
-  mainClassName = 'com.szepep.dixa.proto.GreeterServer'
+  mainClassName = 'com.szepep.dixa.service.PrimeServer'
 }
