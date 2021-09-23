@@ -31,20 +31,28 @@ class PrimeServiceImplSpec
   }
 
   "PrimeServiceImpl" should {
-    "primes until 10" in {
-      val reply = service.get(Request(10))
-      val future = reply.map(_.prime).runWith(Sink.seq)
-      val result = Await.result(future, 3.seconds)
 
-      result should be(Seq(2, 3, 5, 7))
+    "primes until 0" in {
+      primesUntil(0) should be(empty)
+    }
+
+    "primes until 2" in {
+      primesUntil(2) should be(Seq(2))
+    }
+
+    "primes until 10" in {
+      primesUntil(10) should be(Seq(2, 3, 5, 7))
     }
 
     "primes until 11" in {
-      val reply = service.get(Request(11))
-      val future = reply.map(_.prime).runWith(Sink.seq)
-      val result = Await.result(future, 3.seconds)
-
-      result should be(Seq(2, 3, 5, 7, 11))
+      primesUntil(11) should be(Seq(2, 3, 5, 7, 11))
     }
+
+    def primesUntil(number: Int): Seq[Int] = {
+      val reply = service.get(Request(number))
+      val future = reply.map(_.prime).runWith(Sink.seq)
+      Await.result(future, 3.seconds)
+    }
+
   }
 }
